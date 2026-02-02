@@ -3,23 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mabinogi 航班監測 - 登船狀態版</title>
+    <title>瑪奇航班監測 - 全中文專業版</title>
     <style>
         :root {
-            /* 經典瑪奇配色 */
+            /* 瑪奇經典配色 */
             --mabi-bg: #5ca4ce; --mabi-header: #4b8dc5; --mabi-border: #133c5a;
             --mabi-list-bg: #32648a; --mabi-highlight: #9fe2fb;
             --text-dark: #133c5a; --timer-yellow: #fde047;
-            --sidebar-bg: #1a202c;
-            
-            /* 狀態配色 */
-            --status-boarding: #10b981; /* 開放登船 - 綠色 */
-            --status-atsea: #3b82f6;    /* 未到港 - 藍色 */
-            
-            /* 動態字體與佈局 */
+            --sidebar-bg: #1a202c; --status-boarding: #10b981; --status-atsea: #3b82f6;
+
+            /* 動態比例縮放字體 */
             --base-font: clamp(14px, 1.2vw, 22px);
             --title-font: clamp(16px, 1.5vw, 26px);
             --timer-font: clamp(15px, 1.4vw, 24px);
+            --detail-font: clamp(16px, 1.6vw, 30px);
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -29,29 +26,36 @@
             color: white; font-size: var(--base-font);
         }
 
-        /* --- 頂部已到港標籤區 --- */
+        /* 頂部到港快訊 */
         .alerts-container {
             position: sticky; top: 0; z-index: 1000;
             background-color: #1e293b; border-bottom: 3px solid var(--status-boarding);
             padding: 15px 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
         }
-        .alert-label { color: var(--status-boarding); font-weight: bold; margin-bottom: 8px; font-size: 1.1em; }
-        .grid-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+        .alert-label { color: var(--status-boarding); font-weight: bold; margin-bottom: 10px; font-size: 1.1em; }
+        .grid-tags { display: flex; flex-wrap: wrap; gap: 10px; }
         .tag-boarding { 
-            background: var(--status-boarding); padding: 6px 12px; border-radius: 6px; 
-            font-size: 0.85em; font-weight: bold; animation: pulse 2s infinite;
+            background: var(--status-boarding); color: white; padding: 8px 15px; 
+            border-radius: 8px; font-size: 0.9em; font-weight: bold;
+            animation: pulse 2s infinite;
         }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
+        /* 主佈局 */
         .main-wrapper { display: flex; flex-grow: 1; overflow: hidden; }
 
-        /* 左側導航 */
+        /* 左側分類導航 */
         .sidebar { 
             width: clamp(180px, 15vw, 300px); background: var(--sidebar-bg); 
             border-right: 3px solid var(--mabi-border); overflow-y: auto; flex-shrink: 0; 
         }
+        .sidebar-header { padding: 20px; font-weight: bold; color: var(--mabi-highlight); border-bottom: 1px solid #2d3748; text-align: center; }
         .filter-btn { padding: 18px 20px; cursor: pointer; color: #a0aec0; border-left: 6px solid transparent; transition: 0.2s; }
-        .filter-btn.active { background: rgba(74, 144, 226, 0.2); color: var(--mabi-highlight); border-left-color: var(--mabi-header); font-weight: bold; }
+        .filter-btn:hover { background: rgba(255,255,255,0.05); color: white; }
+        .filter-btn.active { 
+            background: rgba(74, 144, 226, 0.2); color: var(--mabi-highlight); 
+            border-left-color: var(--mabi-header); font-weight: bold; 
+        }
 
         /* 右側儀表板 */
         .dashboard { 
@@ -59,26 +63,33 @@
             display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px;
         }
 
-        .mabi-window { background: var(--mabi-bg); border: 3px solid var(--mabi-border); border-radius: 6px; display: flex; flex-direction: column; }
-        .mabi-header { background: var(--mabi-header); padding: 10px 15px; font-weight: bold; display: flex; justify-content: space-between; }
+        .mabi-window { background: var(--mabi-bg); border: 3px solid var(--mabi-border); border-radius: 6px; width: 100%; display: flex; flex-direction: column; }
+        .mabi-header { background: var(--mabi-header); padding: 10px 15px; font-weight: bold; display: flex; justify-content: space-between; border-bottom: 2px solid var(--mabi-border); }
         .channel-list { margin: 8px; background: var(--mabi-list-bg); border: 2px solid var(--mabi-border); }
         
-        /* 分流列：顯示狀態文字 */
         .ch-row { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
-        .ch-row.boarding { background-color: rgba(16, 185, 129, 0.25); }
-        .ch-row.selected { border: 2px solid white; }
+        .ch-row.boarding { background-color: rgba(16, 185, 129, 0.3); }
+        .ch-row.selected { background-color: rgba(255, 255, 255, 0.2); border: 1px solid white; }
 
-        .ch-status { font-size: 0.75em; padding: 2px 6px; border-radius: 4px; margin-left: 10px; font-weight: bold; }
-        .st-boarding { background-color: var(--status-boarding); color: white; }
-        .st-atsea { background-color: var(--status-atsea); color: white; }
+        /* 點擊展開的資訊欄 */
+        .detail-row {
+            background-color: var(--mabi-highlight); color: var(--text-dark);
+            padding: 15px 20px; font-size: var(--detail-font); font-weight: 800;
+            display: none; border-bottom: 2px solid var(--mabi-border); line-height: 1.5;
+        }
+        .ch-row.selected + .detail-row { display: block; }
 
         .timer-val { color: var(--timer-yellow); font-family: 'Courier New', monospace; font-weight: bold; font-size: var(--timer-font); }
+        .status-badge { font-size: 0.75em; padding: 2px 8px; border-radius: 4px; color: white; margin-left: 8px; }
+        .bg-boarding { background-color: var(--status-boarding); }
+        .bg-atsea { background-color: var(--status-atsea); }
 
-        /* 手機適配 */
+        /* 手機 RWD */
         @media (max-width: 768px) {
             .main-wrapper { flex-direction: column; }
             .sidebar { width: 100%; height: auto; display: flex; flex-direction: row; border-right: none; border-bottom: 3px solid var(--mabi-border); overflow-x: auto; }
-            .filter-btn { padding: 12px; white-space: nowrap; border-left: none; border-bottom: 4px solid transparent; }
+            .sidebar-header { display: none; }
+            .filter-btn { padding: 15px; white-space: nowrap; border-left: none; border-bottom: 4px solid transparent; }
             .filter-btn.active { border-bottom-color: var(--mabi-header); }
         }
     </style>
@@ -86,28 +97,29 @@
 <body>
 
 <div class="alerts-container">
-    <div class="alert-label">✅ 開放登船的分流：</div>
+    <div class="alert-label">✅ 目前開放登船的分流：</div>
     <div class="grid-tags" id="arrivedTags"></div>
 </div>
 
 <div class="main-wrapper">
     <div class="sidebar">
+        <div class="sidebar-header">航海區域導航</div>
         <div class="filter-btn active" onclick="setFilter('all')">🌐 全部航線</div>
-        <div class="filter-btn" onclick="setFilter('1_卡普')">⚓ 卡普</div>
-        <div class="filter-btn" onclick="setFilter('2_貝島')">🍀 貝島</div>
-        <div class="filter-btn" onclick="setFilter('4_克拉')">🏜️ 克拉</div>
-        <div class="filter-btn" onclick="setFilter('6_克諾斯')">🐫 比路里亞</div>
-        <div class="filter-btn" onclick="setFilter('8_錫拉')">❄️ 菲西斯</div>
-        <div class="filter-btn" onclick="setFilter('5_凱安')">🏖️ 凱安</div>
+        <div class="filter-btn" onclick="setFilter('1_卡普')">⚓ 卡普港口</div>
+        <div class="filter-btn" onclick="setFilter('2_貝島')">🍀 貝爾法斯特</div>
+        <div class="filter-btn" onclick="setFilter('4_克拉')">🏜️ 克拉港口</div>
+        <div class="filter-btn" onclick="setFilter('6_克諾斯')">🐫 克諾斯 (比路里亞)</div>
+        <div class="filter-btn" onclick="setFilter('8_錫拉')">❄️ 錫拉 (菲西斯)</div>
+        <div class="filter-btn" onclick="setFilter('5_凱安')">🏖️ 凱安港口</div>
     </div>
     <div class="dashboard" id="app"></div>
 </div>
 
 <script>
-    // 依據 3.outputData.html 數據與 flight_const.html 週期常數
+    // 整合 3.outputData.html 數據，修正 atJetty 為 300 秒解決 CH6 顯示問題
     const routes = [
-        { id: "1_卡普", name: "1_卡普 → 貝島", cycle: 360, atJetty: 150, seeds: ["2026/02/01 21:35:01", "2026/02/01 21:35:04", "2026/02/01 21:34:49", "2026/02/01 21:33:05", "2026/02/01 21:32:57", "2026/02/01 21:35:01", "2026/02/01 21:34:41", "2026/02/01 21:34:49", "2026/02/01 21:34:35", "2026/02/01 21:35:00", "2026/02/01 21:34:41", "2026/02/01 21:38:29", "2026/02/01 21:37:00"] },
-        { id: "2_貝島", name: "2_貝島 → 卡普", cycle: 360, atJetty: 150, seeds: ["2026/02/01 21:35:31", "2026/02/01 21:35:34", "2026/02/01 21:35:19", "2026/02/01 21:33:35", "2026/02/01 21:33:27", "2026/02/01 21:35:31", "2026/02/01 21:35:11", "2026/02/01 21:35:19", "2026/02/01 21:35:05", "2026/02/01 21:35:30", "2026/02/01 21:35:11", "2026/02/01 21:38:59", "2026/02/01 21:37:30"] },
+        { id: "1_卡普", name: "1_卡普 → 貝島", cycle: 360, atJetty: 300, seeds: ["2026/02/01 21:35:01", "2026/02/01 21:35:04", "2026/02/01 21:34:49", "2026/02/01 21:33:05", "2026/02/01 21:32:57", "2026/02/01 21:35:01", "2026/02/01 21:34:41", "2026/02/01 21:34:49", "2026/02/01 21:34:35", "2026/02/01 21:35:00", "2026/02/01 21:34:41", "2026/02/01 21:38:29", "2026/02/01 21:37:00"] },
+        { id: "2_貝島", name: "2_貝島 → 卡普", cycle: 360, atJetty: 300, seeds: ["2026/02/01 21:35:31", "2026/02/01 21:35:34", "2026/02/01 21:35:19", "2026/02/01 21:33:35", "2026/02/01 21:33:27", "2026/02/01 21:35:31", "2026/02/01 21:35:11", "2026/02/01 21:35:19", "2026/02/01 21:35:05", "2026/02/01 21:35:30", "2026/02/01 21:35:11", "2026/02/01 21:38:59", "2026/02/01 21:37:30"] },
         { id: "1_卡普", name: "3_卡普 → 克拉", cycle: 660, atJetty: 300, seeds: ["2026/02/01 21:44:31", "2026/02/01 21:44:34", "2026/02/01 21:44:20", "2026/02/01 21:42:34", "2026/02/01 21:42:28", "2026/02/01 21:44:30", "2026/02/01 21:44:11", "2026/02/01 21:44:19", "2026/02/01 21:44:05", "2026/02/01 21:44:31", "2026/02/01 21:44:11", "2026/02/01 21:41:58", "2026/02/01 21:41:29"] },
         { id: "4_克拉", name: "4_克拉 → 卡普", cycle: 660, atJetty: 300, seeds: ["2026/02/01 21:45:01", "2026/02/01 21:45:04", "2026/02/01 21:44:50", "2026/02/01 21:43:04", "2026/02/01 21:42:58", "2026/02/01 21:45:00", "2026/02/01 21:44:41", "2026/02/01 21:44:49", "2026/02/01 21:44:35", "2026/02/01 21:45:01", "2026/02/01 21:44:41", "2026/02/01 21:42:28", "2026/02/01 21:41:59"] },
         { id: "5_凱安", name: "5_凱安 → 克諾斯", cycle: 660, atJetty: 300, seeds: ["2026/02/01 21:45:01", "2026/02/01 21:45:04", "2026/02/01 21:44:49", "2026/02/01 21:43:04", "2026/02/01 21:42:58", "2026/02/01 21:45:01", "2026/02/01 21:44:41", "2026/02/01 21:44:48", "2026/02/01 21:44:35", "2026/02/01 21:45:01", "2026/02/01 21:44:41", "2026/02/01 21:42:29", "2026/02/01 21:42:00"] },
@@ -116,7 +128,7 @@
         { id: "8_錫拉", name: "8_錫拉 → 凱安", cycle: 660, atJetty: 300, seeds: ["2026/02/01 21:45:31", "2026/02/01 21:45:34", "2026/02/01 21:45:19", "2026/02/01 21:43:34", "2026/02/01 21:43:27", "2026/02/01 21:45:30", "2026/02/01 21:45:11", "2026/02/01 21:45:18", "2026/02/01 21:45:05", "2026/02/01 21:45:31", "2026/02/01 21:45:12", "2026/02/01 21:53:59", "2026/02/01 21:53:30"] }
     ];
 
-    let currentFilter = 'all'; let expandedId = null;
+    let currentFilter = 'all'; let expanded = null;
 
     function setFilter(f) {
         currentFilter = f;
@@ -124,43 +136,46 @@
         render();
     }
 
-    function toggleDetail(id) { expandedId = (expandedId === id) ? null : id; render(); }
+    function toggleDetail(id) { expanded = (expanded === id) ? null : id; render(); }
 
     function render() {
         const app = document.getElementById('app');
         const arrivedTags = document.getElementById('arrivedTags');
-        const now = new Date();
-        app.innerHTML = ''; arrivedTags.innerHTML = '';
+        const now = new Date(); app.innerHTML = ''; arrivedTags.innerHTML = '';
 
         routes.forEach((route, rIdx) => {
             if (currentFilter !== 'all' && route.id !== currentFilter) return;
 
-            const win = document.createElement('div');
-            win.className = 'mabi-window';
+            const win = document.createElement('div'); win.className = 'mabi-window';
             let winHtml = `<div class="mabi-header"><span>${route.name}</span><span>X</span></div><div class="channel-list">`;
 
             route.seeds.forEach((seedStr, cIdx) => {
                 const diff = (now.getTime() - new Date(seedStr).getTime()) / 1000;
                 const remain = (route.cycle - (diff % route.cycle)) % route.cycle;
-                const isBoarding = remain <= route.atJetty; // 判定登船邏輯
                 
+                // 修正判定：只要在 5 分鐘內都算開放登船
+                const isBoarding = remain <= route.atJetty;
                 const timeStr = `${Math.floor(remain/60)}:${Math.floor(remain%60).toString().padStart(2,'0')}`;
                 const id = `${rIdx}_${cIdx}`;
 
                 if (isBoarding) {
-                    const port = route.name.split(' → ')[0].slice(2);
+                    const port = route.name.split(' → ')[0].split('_')[1];
                     arrivedTags.innerHTML += `<div class="tag-boarding">${port} CH${cIdx+1}</div>`;
                 }
 
                 winHtml += `
-                    <div class="ch-row ${isBoarding ? 'boarding' : ''} ${expandedId === id ? 'selected' : ''}" onclick="toggleDetail('${id}')">
-                        <span>CHANNEL ${cIdx+1} <span class="ch-status ${isBoarding ? 'st-boarding' : 'st-atsea'}">${isBoarding ? '開放登船' : '未到港'}</span></span>
+                    <div class="ch-row ${isBoarding ? 'boarding' : ''} ${expanded === id ? 'selected' : ''}" onclick="toggleDetail('${id}')">
+                        <span>CHANNEL ${cIdx+1} <span class="status-badge ${isBoarding ? 'bg-boarding' : 'bg-atsea'}">${isBoarding ? '開放登船' : '未到港'}</span></span>
                         <span class="timer-val">${timeStr}</span>
+                    </div>
+                    <div class="detail-row">
+                        🚢 下班出發剩餘：<span style="color:#d946ef">${timeStr}</span><br>
+                        📊 當前狀態：${isBoarding ? '🟢 開放登船中' : '🔵 尚未到港'}
                     </div>`;
             });
             win.innerHTML = winHtml + '</div>'; app.appendChild(win);
         });
-        if (!arrivedTags.innerHTML) arrivedTags.innerHTML = '<span style="color:#64748b; font-size:0.8em;">(暫無開放登船的分流)</span>';
+        if (!arrivedTags.innerHTML) arrivedTags.innerHTML = '<span style="color:#64748b; font-size:0.8em;">(目前暫無開放登船的分流)</span>';
     }
 
     setInterval(render, 1000); render();
